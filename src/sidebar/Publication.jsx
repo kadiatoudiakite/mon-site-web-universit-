@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Plus, Calendar, Download, Edit2, Trash2, Loader2, 
   Briefcase, AlertCircle, LogIn, FileText, Building2, 
-  Clock, Heart, MessageSquare, Share2
+  Clock, Heart, MessageSquare, Share2, BarChart3, X
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import FormPublicationUniversite from '../pages/Form_publication_universite.jsx';
@@ -15,6 +15,7 @@ export default function Publication() {
   const [error, setError] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [editingPublication, setEditingPublication] = useState(null);
+  const [selectedPublicationDetails, setSelectedPublicationDetails] = useState(null);
 
   const getToken = () => localStorage.getItem('token');
   const isAuthenticated = () => !!getToken();
@@ -37,6 +38,15 @@ export default function Publication() {
       const url = authenticated ? 'http://localhost:5000/api/universites' : 'http://localhost:5000/api/universites/public';
       const opts = authenticated ? { headers: { Authorization: `Bearer ${getToken()}` } } : {};
       const response = await fetch(url, opts);
+      
+      if (response.status === 401) {
+        // Token invalide ou expiré
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
+        window.location.reload();
+        return;
+      }
+      
       const data = await response.json();
       if (data) {
         if (Array.isArray(data)) setPublications(data);
@@ -84,6 +94,14 @@ export default function Publication() {
       headers: { Authorization: `Bearer ${getToken()}` },
       body,
     });
+    
+    if (response.status === 401) {
+      localStorage.removeItem('user');
+      localStorage.removeItem('token');
+      window.location.reload();
+      return;
+    }
+    
     const data = await response.json();
     if (!data.success) throw new Error(data.message || 'Erreur lors de la création');
     await fetchPublications();
@@ -105,6 +123,14 @@ export default function Publication() {
       headers: { Authorization: `Bearer ${getToken()}` },
       body,
     });
+    
+    if (response.status === 401) {
+      localStorage.removeItem('user');
+      localStorage.removeItem('token');
+      window.location.reload();
+      return;
+    }
+    
     const data = await response.json();
     if (!data.success) throw new Error(data.message || 'Erreur lors de la modification');
     await fetchPublications();
@@ -119,6 +145,14 @@ export default function Publication() {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${getToken()}` },
       });
+      
+      if (response.status === 401) {
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
+        window.location.reload();
+        return;
+      }
+      
       const data = await response.json();
       if (data.success) {
         setPublications(prev => prev.filter(p => p.id !== id));
@@ -146,6 +180,36 @@ export default function Publication() {
   const openEditModal = (pub) => {
     setEditingPublication(pub);
     setShowModal(true);
+  };
+
+  const fetchPublicationDetails = async (pub) => {
+    // Fetch les stats du serveur
+    try {
+      const response = await fetch(`http://localhost:5000/api/universites/${pub.id}/stats`);
+      const data = await response.json();
+      
+      if (data.success) {
+        setSelectedPublicationDetails({
+          ...pub,
+          likes: data.data.likes || 0,
+          comments: data.data.comments || 0
+        });
+      } else {
+        // Fallback si erreur
+        setSelectedPublicationDetails({
+          ...pub,
+          likes: 0,
+          comments: 0
+        });
+      }
+    } catch (err) {
+      console.error('Erreur récupération stats:', err);
+      setSelectedPublicationDetails({
+        ...pub,
+        likes: 0,
+        comments: 0
+      });
+    }
   };
 
   const totalPublications = publications.length;
@@ -287,20 +351,37 @@ export default function Publication() {
 
                       <p className="mt-2 text-gray-600 text-sm line-clamp-3 flex-1">{pub.description}</p>
 
-                      <div className="mt-3 flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <button onClick={() => openEditModal(pub)} className="p-1 hover:bg-gray-100 rounded">
-                            <Edit2 className="h-4 w-4 text-gray-500" />
-                          </button>
-                          <button onClick={() => handleDelete(pub.id)} className="p-1 hover:bg-gray-100 rounded">
-                            <Trash2 className="h-4 w-4 text-red-500" />
-                          </button>
-                        </div>
-                        {pub.fichier && (
-                          <button onClick={() => handleDownload(pub.fichier)} className="text-sm text-indigo-600 font-medium">
-                            Ouvrir
-                          </button>
-                        )}
+                      <div className="mt-4 pt-4 border-t border-gray-200 flex items-center gap-2">
+                        <motion.button 
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => fetchPublicationDetails(pub)}
+                          className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-lg font-medium text-sm transition-colors"
+                          title="Voir les statistiques"
+                        >
+                          <BarChart3 className="h-4 w-4" />
+                          Détails
+                        </motion.button>
+                        
+                        <motion.button 
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => openEditModal(pub)} 
+                          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                          title="Modifier"
+                        >
+                          <Edit2 className="h-4 w-4 text-gray-500" />
+                        </motion.button>
+                        
+                        <motion.button 
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => handleDelete(pub.id)} 
+                          className="p-2 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Supprimer"
+                        >
+                          <Trash2 className="h-4 w-4 text-red-500" />
+                        </motion.button>
                       </div>
                     </div>
                   </motion.article>
@@ -322,6 +403,129 @@ export default function Publication() {
         initialData={editingPublication}
         domains={domains}
       />
+
+      {/* Modal Détails de la publication */}
+      <AnimatePresence>
+        {selectedPublicationDetails && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
+            onClick={() => setSelectedPublicationDetails(null)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden"
+            >
+              {/* En-tête du modal */}
+              <div className="bg-gradient-to-r from-indigo-600 to-indigo-700 p-6 text-white flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <BarChart3 className="h-6 w-6" />
+                  <h2 className="text-xl font-bold">Statistiques</h2>
+                </div>
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setSelectedPublicationDetails(null)}
+                  className="p-1 hover:bg-white/20 rounded-lg transition-colors"
+                >
+                  <X className="h-5 w-5" />
+                </motion.button>
+              </div>
+
+              {/* Contenu du modal */}
+              <div className="p-6 space-y-6">
+                {/* Titre et domaine */}
+                <div>
+                  <h3 className="font-bold text-lg text-gray-900 mb-1 truncate">
+                    {selectedPublicationDetails.titre}
+                  </h3>
+                  <p className="text-sm text-gray-500">
+                    {selectedPublicationDetails.domaine_nom || 'Domaine'} • 
+                    {new Date(selectedPublicationDetails.created_at).toLocaleDateString('fr-FR')}
+                  </p>
+                </div>
+
+                {/* Statistiques */}
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Likes */}
+                  <motion.div
+                    whileHover={{ scale: 1.02 }}
+                    className="bg-gradient-to-br from-red-50 to-red-100 border border-red-200 rounded-xl p-4 text-center cursor-pointer hover:shadow-md transition-shadow"
+                  >
+                    <div className="flex justify-center mb-2">
+                      <div className="p-2 bg-red-200 rounded-full">
+                        <Heart className="h-5 w-5 text-red-600 fill-red-600" />
+                      </div>
+                    </div>
+                    <p className="text-2xl font-bold text-red-600">
+                      {selectedPublicationDetails.likes}
+                    </p>
+                    <p className="text-xs text-red-700 font-medium mt-1">
+                      J'aime{selectedPublicationDetails.likes > 1 ? 's' : ''}
+                    </p>
+                  </motion.div>
+
+                  {/* Commentaires */}
+                  <motion.div
+                    whileHover={{ scale: 1.02 }}
+                    className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-4 text-center cursor-pointer hover:shadow-md transition-shadow"
+                  >
+                    <div className="flex justify-center mb-2">
+                      <div className="p-2 bg-blue-200 rounded-full">
+                        <MessageSquare className="h-5 w-5 text-blue-600 fill-blue-600" />
+                      </div>
+                    </div>
+                    <p className="text-2xl font-bold text-blue-600">
+                      {selectedPublicationDetails.comments}
+                    </p>
+                    <p className="text-xs text-blue-700 font-medium mt-1">
+                      Commentaire{selectedPublicationDetails.comments > 1 ? 's' : ''}
+                    </p>
+                  </motion.div>
+                </div>
+
+                {/* Informations supplémentaires */}
+                <div className="bg-gray-50 rounded-xl p-4 space-y-3 border border-gray-200">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600 flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-indigo-600" />
+                      Période
+                    </span>
+                    <span className="text-sm font-medium text-gray-900">
+                      {new Date(selectedPublicationDetails.date_debut).toLocaleDateString('fr-FR')} → 
+                      {new Date(selectedPublicationDetails.date_fin).toLocaleDateString('fr-FR')}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600 flex items-center gap-2">
+                      <Clock className="h-4 w-4 text-indigo-600" />
+                      Durée
+                    </span>
+                    <span className="text-sm font-medium text-gray-900">
+                      {selectedPublicationDetails.duree}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Bouton de fermeture */}
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setSelectedPublicationDetails(null)}
+                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 rounded-xl transition-colors shadow-md hover:shadow-lg"
+                >
+                  Fermer
+                </motion.button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

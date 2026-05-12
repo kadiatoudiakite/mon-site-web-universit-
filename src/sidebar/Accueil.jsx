@@ -12,7 +12,8 @@ import {
 } from '@heroicons/react/24/outline';
 import { useState, useEffect } from 'react';
 
-export default function Accueil({ userId, userData }) {
+export default function Accueil({ userId, userData, onNavigate }) {
+
   const [stats, setStats] = useState(null);
   const [chargement, setChargement] = useState(true);
   const [erreur, setErreur] = useState('');
@@ -72,12 +73,20 @@ export default function Accueil({ userId, userData }) {
             Voici l'état actuel de votre plateforme StageTrack. Le système est opérationnel et prêt pour la gestion académique.
           </p>
           <div className="flex gap-4 mt-8">
-            <button className="px-6 py-3 bg-white text-indigo-900 rounded-2xl font-black text-sm shadow-lg hover:scale-105 transition-transform">
+            <button 
+              onClick={() => onNavigate('publication')}
+              className="px-6 py-3 bg-white text-indigo-900 rounded-2xl font-black text-sm shadow-lg hover:scale-105 transition-transform"
+            >
               Nouvelle Publication
             </button>
-            <button className="px-6 py-3 bg-indigo-500/30 text-white border border-indigo-400/30 rounded-2xl font-bold text-sm backdrop-blur-md hover:bg-indigo-500/50 transition-all">
+
+            <button 
+              onClick={() => onNavigate('analyse')}
+              className="px-6 py-3 bg-indigo-500/30 text-white border border-indigo-400/30 rounded-2xl font-bold text-sm backdrop-blur-md hover:bg-indigo-500/50 transition-all"
+            >
               Consulter les rapports
             </button>
+
           </div>
         </div>
         <AcademicCapIcon className="absolute -right-10 -bottom-10 w-64 h-64 text-white/10 -rotate-12" />

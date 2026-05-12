@@ -11,13 +11,33 @@ function App() {
   // Vérifier si l'utilisateur est déjà connecté
   useEffect(() => {
     const user = localStorage.getItem('user');
-    if (user) {
-      const userData = JSON.parse(user);
-      console.log('💾 [APP] Utilisateur trouvé dans localStorage:', userData.nom, userData.prenom);
-      setUserEmail(userData.email);
-      setUserId(userData.id);
-      setUserData(userData);
-      setConnecte(true);
+    const token = localStorage.getItem('token');
+    if (user && token) {
+      // Vérifier si le token est valide
+      fetch('http://localhost:5000/api/universites', {
+        headers: { Authorization: `Bearer ${token}` }
+      }).then(response => {
+        if (response.status === 401) {
+          // Token invalide, nettoyer
+          localStorage.removeItem('user');
+          localStorage.removeItem('token');
+          setConnecte(false);
+        } else {
+          const userData = JSON.parse(user);
+          console.log('💾 [APP] Utilisateur trouvé dans localStorage:', userData.nom, userData.prenom);
+          setUserEmail(userData.email);
+          setUserId(userData.id);
+          setUserData(userData);
+          setConnecte(true);
+        }
+      }).catch(() => {
+        // Erreur réseau, garder comme connecté pour éviter déconnexion accidentelle
+        const userData = JSON.parse(user);
+        setUserEmail(userData.email);
+        setUserId(userData.id);
+        setUserData(userData);
+        setConnecte(true);
+      });
     }
   }, []);
 
@@ -32,6 +52,8 @@ function App() {
   const handleLogout = () => {
     console.log('🚪 [APP] Déconnexion en cours...');
     localStorage.removeItem('user');
+    localStorage.removeItem('token');
+
     setConnecte(false);
     setUserEmail('');
     setUserId(null);

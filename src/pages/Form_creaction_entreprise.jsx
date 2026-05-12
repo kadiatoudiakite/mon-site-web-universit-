@@ -10,7 +10,9 @@ export default function FormulaireEntreprise({ isOpen, onClose, onSubmit }) {
   });
   const [domaines, setDomaines] = useState([]);
   const [erreur, setErreur] = useState('');
+  const [loading, setLoading] = useState(false);
 
+  // Charger les domaines
   useEffect(() => {
     const chargerDomaines = async () => {
       try {
@@ -34,34 +36,45 @@ export default function FormulaireEntreprise({ isOpen, onClose, onSubmit }) {
 
   const gererSoumission = async (e) => {
     e.preventDefault();
+    setErreur('');
+    setLoading(true);
 
+    // Validation
     if (!formulaire.nom.trim()) {
       setErreur('Le nom de l’entreprise est requis');
+      setLoading(false);
       return;
     }
     if (!formulaire.email.trim()) {
       setErreur('L’email est requis');
+      setLoading(false);
       return;
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formulaire.email)) {
       setErreur('Veuillez entrer un email valide');
+      setLoading(false);
       return;
     }
     if (!formulaire.domaine_id) {
       setErreur('Le domaine d’activité est requis');
+      setLoading(false);
       return;
     }
 
     try {
       await onSubmit({
-        nom: formulaire.nom,
-        email: formulaire.email,
+        nom: formulaire.nom.trim(),
+        email: formulaire.email.trim(),
         domaine_id: formulaire.domaine_id
       });
+
+      // Réinitialisation
       setFormulaire({ nom: '', email: '', domaine_id: '' });
       onClose();
     } catch (error) {
       setErreur(error.message || 'Une erreur est survenue lors de la création');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -82,7 +95,7 @@ export default function FormulaireEntreprise({ isOpen, onClose, onSubmit }) {
             transition={{ duration: 0.2, ease: 'easeOut' }}
             className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
           >
-            {/* En-tête avec icône et titre */}
+            {/* En-tête */}
             <div className="relative px-6 pt-6 pb-4 border-b border-gray-100">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -173,9 +186,10 @@ export default function FormulaireEntreprise({ isOpen, onClose, onSubmit }) {
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg shadow-sm shadow-indigo-200 transition-all"
+                    disabled={loading}
+                    className="flex-1 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg shadow-sm shadow-indigo-200 transition-all disabled:opacity-70"
                   >
-                    Créer l’entreprise
+                    {loading ? 'Création en cours...' : 'Créer l’entreprise'}
                   </button>
                 </div>
               </form>

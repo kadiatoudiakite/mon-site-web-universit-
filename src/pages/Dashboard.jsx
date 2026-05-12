@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Handshake } from 'lucide-react';
 import {
   HomeIcon,
   AcademicCapIcon,
@@ -11,24 +12,29 @@ import {
   ArrowLeftOnRectangleIcon,
   ShieldCheckIcon as Shield
 } from '@heroicons/react/24/outline';
+
 import Accueil from '../sidebar/Accueil';
 import Etudiant from '../sidebar/Etudiant';
 import Analyse from '../sidebar/Analyse';
 import Entreprise from '../sidebar/Entreprise';
 import Messagerie from '../sidebar/Messagerie';
-import Notification from '../sidebar/Notification';
+import Notification from '../sidebar/NotificationUniversite';
 import Publication from '../sidebar/Publication';
+import Partenariat from '../sidebar/Partenariat';
 import ProfilEntreprise from '../sidebar/Profil';
 import AdminManagement from '../sidebar/AdminManagement';
+import Candidature from '../sidebar/candidature';
 
 const components = {
   accueil: Accueil,
   etudiant: Etudiant,
   analyse: Analyse,
   entreprise: Entreprise,
+  candidature: Candidature,
   messagerie: Messagerie,
   notification: Notification,
   publication: Publication,
+  partenariat: Partenariat,
   'profil-entreprise': ProfilEntreprise,
   'admin-management': AdminManagement
 };
@@ -36,22 +42,31 @@ const components = {
 export default function Dashboard({ userEmail, userId, userData, onLogout }) {
   const [activeTab, setActiveTab] = useState('accueil');
   const [unreadCount, setUnreadCount] = useState(0);
+  const [notifCount, setNotifCount] = useState(0);
 
-  const fetchUnreadCount = async () => {
+  const fetchDataCounts = async () => {
     const token = localStorage.getItem('token');
     if (!token) return;
     try {
-      const res = await fetch('http://localhost:5000/api/messagerie/unread-count', {
+      // Messages non lus
+      const resMsg = await fetch('http://localhost:5000/api/messagerie/unread-count', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      const data = await res.json();
-      setUnreadCount(data.count || 0);
+      const dataMsg = await resMsg.json();
+      setUnreadCount(dataMsg.count || 0);
+
+      // Notifications non lues
+      const resNotif = await fetch('http://localhost:5000/api/universites/notifications/unread-count', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const dataNotif = await resNotif.json();
+      setNotifCount(dataNotif.count || 0);
     } catch (e) {}
   };
 
   useEffect(() => {
-    fetchUnreadCount();
-    const interval = setInterval(fetchUnreadCount, 10000);
+    fetchDataCounts();
+    const interval = setInterval(fetchDataCounts, 10000);
     return () => clearInterval(interval);
   }, []);
 
@@ -60,8 +75,10 @@ export default function Dashboard({ userEmail, userId, userData, onLogout }) {
     { id: 'etudiant', label: 'Étudiant', icon: AcademicCapIcon },
     { id: 'analyse', label: 'Analyse', icon: ChartBarIcon },
     { id: 'entreprise', label: 'Entreprise', icon: BriefcaseIcon },
+    { id: 'candidature', label: 'Candidatures', icon: DocumentTextIcon },
     { id: 'messagerie', label: 'Messagerie', icon: ChatBubbleLeftIcon, count: unreadCount },
-    { id: 'notification', label: 'Notification', icon: BellIcon },
+    { id: 'notification', label: 'Notification', icon: BellIcon, count: notifCount },
+    { id: 'partenariat', label: 'Partenariat', icon: Handshake },
     { id: 'publication', label: 'Publication', icon: DocumentTextIcon },
     { id: 'profil-entreprise', label: 'Mon Profil', icon: UserCircleIcon }
   ];
@@ -70,9 +87,11 @@ export default function Dashboard({ userEmail, userId, userData, onLogout }) {
 
   // Fournir des props utiles aux composants
   const getComponentProps = () => {
-    const base = { userId, userEmail, userData };
+    const base = { userId, userEmail, userData, onNavigate: setActiveTab, onLogout };
+
     return base;
   };
+
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
