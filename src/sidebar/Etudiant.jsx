@@ -58,18 +58,42 @@ export default function Etudiant({ userId }) {
   );
 
   const exportCSV = () => {
-    const headers = ['Nom', 'Prénom', 'Email', 'Filière', 'Niveau', 'Candidatures', 'Stages'];
+    if (filteredStudents.length === 0) {
+      toast.error("Aucune donnée à exporter");
+      return;
+    }
+    const headers = ['Nom', 'Prénom', 'Email', 'Téléphone', 'Filière', 'Niveau', 'Nombre de Candidatures', 'Stages Trouvés'];
     const rows = filteredStudents.map(s => [
-      s.nom, s.prenom, s.email, s.filiere, s.niveau, s.nb_candidatures, s.nb_stages
+      s.nom || '',
+      s.prenom || '',
+      s.email || '',
+      s.telephone || '',
+      s.filiere || 'N/A',
+      s.niveau || 'N/A',
+      s.nb_candidatures || 0,
+      s.nb_stages || 0
     ]);
-    const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    
+    // Nettoyer les valeurs et les entourer de guillemets pour éviter tout décalage
+    const formatValue = (val) => {
+      const stringVal = String(val).replace(/"/g, '""');
+      return `"${stringVal}"`;
+    };
+
+    const csvContent = [
+      headers.map(formatValue).join(';'),
+      ...rows.map(r => r.map(formatValue).join(';'))
+    ].join('\r\n');
+
+    // Ajouter le BOM UTF-8 (\uFEFF) pour qu'Excel ouvre le fichier avec le bon encodage et sans erreurs de caractères (accents)
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.setAttribute('download', `liste_etudiants_${new Date().toLocaleDateString()}.csv`);
+    link.setAttribute('download', `liste_etudiants_${new Date().toLocaleDateString('fr-FR').replace(/\//g, '-')}.csv`);
     link.click();
-    toast.success("Liste exportée avec succès");
+    URL.revokeObjectURL(url);
+    toast.success("Liste exportée avec succès sous Excel !");
   };
 
   if (loading) {
@@ -121,7 +145,7 @@ export default function Etudiant({ userId }) {
                   <div className="w-full h-2 bg-gray-50 rounded-full overflow-hidden">
                     <div 
                       className="h-full bg-indigo-600 rounded-full" 
-                      style={{ width: `${(f.value / students.length) * 100}%` }}
+                      style={{ width: `${students.length > 0 ? (f.value / students.length) * 100 : 0}%` }}
                     />
                   </div>
                 </div>

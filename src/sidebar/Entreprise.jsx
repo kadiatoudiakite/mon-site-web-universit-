@@ -19,13 +19,21 @@ import {
 import FormulaireEntreprise from '../pages/Form_creaction_entreprise';
 import { toast, Toaster } from 'react-hot-toast';
 
-export default function Entreprise() {
+export default function Entreprise({ prefillData, setPrefillData }) {
   const [entreprises, setEntreprises] = useState([]);
   const [stats, setStats] = useState(null);
   const [chargement, setChargement] = useState(true);
   const [showFormulaire, setShowFormulaire] = useState(false);
   const [entrepriseSelectionnee, setEntrepriseSelectionnee] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+
+  // Surveiller les données de pré-remplissage
+  useEffect(() => {
+    if (prefillData) {
+      setShowFormulaire(true);
+      // On ne nettoie pas tout de suite pour que le formulaire puisse les lire
+    }
+  }, [prefillData]);
 
   const token = localStorage.getItem('token');
 
@@ -192,8 +200,26 @@ export default function Entreprise() {
 
       <FormulaireEntreprise
         isOpen={showFormulaire}
-        onClose={() => setShowFormulaire(false)}
-        onSubmit={fetchData}
+        onClose={() => {
+          setShowFormulaire(false);
+          setPrefillData(null); // Nettoyer après fermeture
+        }}
+        onSubmit={async (data) => {
+          const response = await fetch('http://localhost:5000/api/entreprises', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(data)
+          });
+          const result = await response.json();
+          if (!response.ok) throw new Error(result.message || 'Erreur lors de la création');
+          
+          toast.success('Entreprise créée avec succès');
+          fetchData();
+        }}
+        prefillData={prefillData}
       />
     </div>
   );

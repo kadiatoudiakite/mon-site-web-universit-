@@ -4,7 +4,7 @@ import {
   Search, Filter, Loader2, Clock, RefreshCw, AlertCircle
 } from 'lucide-react';
 
-export default function Partenariat() {
+export default function Partenariat({ onNavigate, setPrefillData }) {
   const [demandes, setDemandes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -39,11 +39,12 @@ export default function Partenariat() {
 
       if (!response.ok) {
         if (response.status === 401 || response.status === 403) {
-          setError('Session expirée ou invalide. Veuillez vous reconnecter.');
+          localStorage.removeItem('token');
+          window.location.href = '/connexion';
+          return;
         } else {
           throw new Error(`Erreur serveur: ${response.status}`);
         }
-        return;
       }
 
       const data = await response.json();
@@ -61,7 +62,8 @@ export default function Partenariat() {
     }
   };
 
-  const updateStatut = async (id, nouveauStatut) => {
+  const updateStatut = async (demande, nouveauStatut) => {
+    const id = demande.id;
     setActionLoading(id);
     setMessage(null);
 
@@ -80,13 +82,33 @@ export default function Partenariat() {
       const data = await response.json();
 
       if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          localStorage.removeItem('token');
+          window.location.href = '/connexion';
+          return;
+        }
         throw new Error(data.message || 'Erreur lors de la mise à jour');
       }
 
       if (data.success) {
         setMessage({ type: 'success', text: `Demande ${nouveauStatut.toLowerCase()} avec succès !` });
-        // Recharger les données pour refléter le changement
-        fetchDemandes();
+        
+        // Redirection via le Dashboard si acceptée
+        if (nouveauStatut === 'Acceptée') {
+          setTimeout(() => {
+            // On stocke les données pour l'autre composant
+            setPrefillData({
+              nom: demande.nom_entreprise,
+              email: demande.email_entreprise,
+              domaine: demande.domaine,
+              description: demande.description
+            });
+            // On change d'onglet
+            onNavigate('entreprise');
+          }, 1500);
+        } else {
+          fetchDemandes();
+        }
       }
     } catch (err) {
       console.error(err);
@@ -96,7 +118,6 @@ export default function Partenariat() {
       });
     } finally {
       setActionLoading(null);
-      // Auto-hide message
       setTimeout(() => setMessage(null), 4000);
     }
   };
@@ -257,7 +278,7 @@ export default function Partenariat() {
               {demande.statut === 'En attente' && (
                 <div className="flex gap-3 mt-6 pt-5 border-t">
                   <button 
-                    onClick={() => updateStatut(demande.id, 'Acceptée')}
+                    onClick={() => updateStatut(demande, 'Acceptée')}
                     disabled={actionLoading === demande.id}
                     className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-semibold flex items-center justify-center gap-2 transition disabled:opacity-70"
                   >
@@ -270,7 +291,7 @@ export default function Partenariat() {
                   </button>
 
                   <button 
-                    onClick={() => updateStatut(demande.id, 'Refusée')}
+                    onClick={() => updateStatut(demande, 'Refusée')}
                     disabled={actionLoading === demande.id}
                     className="flex-1 py-3 border border-red-300 text-red-600 hover:bg-red-50 rounded-2xl font-semibold flex items-center justify-center gap-2 transition disabled:opacity-70"
                   >

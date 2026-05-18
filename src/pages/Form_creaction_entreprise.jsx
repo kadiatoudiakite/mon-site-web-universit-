@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { XMarkIcon, BuildingOfficeIcon } from '@heroicons/react/24/outline';
 
-export default function FormulaireEntreprise({ isOpen, onClose, onSubmit }) {
+export default function FormulaireEntreprise({ isOpen, onClose, onSubmit, prefillData }) {
   const [formulaire, setFormulaire] = useState({
     nom: '',
     email: '',
@@ -20,13 +20,32 @@ export default function FormulaireEntreprise({ isOpen, onClose, onSubmit }) {
         const data = await response.json();
         if (response.ok && data.success) {
           setDomaines(data.data);
+          
+          // Si on a des données de pré-remplissage, on tente de matcher le domaine
+          if (prefillData) {
+            const domainName = prefillData.domaine;
+            let foundId = '';
+            if (domainName) {
+              const found = data.data.find(d => 
+                d.nom.toLowerCase().includes(domainName.toLowerCase()) || 
+                domainName.toLowerCase().includes(d.nom.toLowerCase())
+              );
+              if (found) foundId = found.id;
+            }
+
+            setFormulaire({
+              nom: prefillData.nom || '',
+              email: prefillData.email || '',
+              domaine_id: foundId
+            });
+          }
         }
       } catch (err) {
         console.error('Erreur chargement domaines:', err);
       }
     };
     if (isOpen) chargerDomaines();
-  }, [isOpen]);
+  }, [isOpen, prefillData]);
 
   const gererChangement = (e) => {
     const { name, value } = e.target;

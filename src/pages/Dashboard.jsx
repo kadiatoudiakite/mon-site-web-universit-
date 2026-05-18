@@ -24,6 +24,7 @@ import Partenariat from '../sidebar/Partenariat';
 import ProfilEntreprise from '../sidebar/Profil';
 import AdminManagement from '../sidebar/AdminManagement';
 import Candidature from '../sidebar/candidature';
+import Rapport from '../sidebar/RapportsUniversite';
 
 const components = {
   accueil: Accueil,
@@ -35,6 +36,7 @@ const components = {
   notification: Notification,
   publication: Publication,
   partenariat: Partenariat,
+  rapport: Rapport,
   'profil-entreprise': ProfilEntreprise,
   'admin-management': AdminManagement
 };
@@ -43,6 +45,7 @@ export default function Dashboard({ userEmail, userId, userData, onLogout }) {
   const [activeTab, setActiveTab] = useState('accueil');
   const [unreadCount, setUnreadCount] = useState(0);
   const [notifCount, setNotifCount] = useState(0);
+  const [prefillData, setPrefillData] = useState(null);
 
   const fetchDataCounts = async () => {
     const token = localStorage.getItem('token');
@@ -80,6 +83,7 @@ export default function Dashboard({ userEmail, userId, userData, onLogout }) {
     { id: 'notification', label: 'Notification', icon: BellIcon, count: notifCount },
     { id: 'partenariat', label: 'Partenariat', icon: Handshake },
     { id: 'publication', label: 'Publication', icon: DocumentTextIcon },
+    { id: 'rapport', label: 'Rapports', icon: DocumentTextIcon },
     { id: 'profil-entreprise', label: 'Mon Profil', icon: UserCircleIcon }
   ];
 
@@ -87,7 +91,15 @@ export default function Dashboard({ userEmail, userId, userData, onLogout }) {
 
   // Fournir des props utiles aux composants
   const getComponentProps = () => {
-    const base = { userId, userEmail, userData, onNavigate: setActiveTab, onLogout };
+    const base = { 
+      userId, 
+      userEmail, 
+      userData, 
+      onNavigate: setActiveTab, 
+      onLogout,
+      prefillData,
+      setPrefillData
+    };
 
     return base;
   };
