@@ -52,7 +52,11 @@ export default function ProfilUniversite({ onLogout }) {
       if (data.success) {
         setProfil(data.data);
         setFormData(data.data);
-      } else if (data.message?.includes('Token') || response.status === 401) {
+      } else if (
+        [401, 403, 404].includes(response.status) ||
+        data.message?.includes('Token') ||
+        data.message?.includes('Profil non trouvé')
+      ) {
         onLogout();
       } else {
         setMessage({ type: 'error', text: data.message || 'Erreur de chargement' });
@@ -89,8 +93,22 @@ export default function ProfilUniversite({ onLogout }) {
       if (data.success) {
         setProfil(formData);
         setModeEdition(false);
+        const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+        const updatedUser = {
+          ...storedUser,
+          nom: formData.nom,
+          prenom: formData.prenom,
+          email: formData.email
+        };
+        localStorage.setItem('user', JSON.stringify(updatedUser));
         setMessage({ type: 'success', text: 'Profil mis à jour avec succès' });
         setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+      } else if (
+        [401, 403, 404].includes(response.status) ||
+        data.message?.includes('Token') ||
+        data.message?.includes('Profil non trouvé')
+      ) {
+        onLogout();
       } else {
         setMessage({ type: 'error', text: data.message || 'Erreur mise à jour' });
       }
@@ -131,6 +149,12 @@ export default function ProfilUniversite({ onLogout }) {
         setShowPasswordModal(false);
         setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
         setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+      } else if (
+        [401, 403, 404].includes(response.status) ||
+        data.message?.includes('Token') ||
+        data.message?.includes('Profil non trouvé')
+      ) {
+        onLogout();
       } else {
         setMessage({ type: 'error', text: data.message || 'Erreur changement mot de passe' });
       }
@@ -156,16 +180,7 @@ export default function ProfilUniversite({ onLogout }) {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 py-10 px-4">
       <div className="max-w-5xl mx-auto">
         {/* Bouton Retour */}
-        <motion.button
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.3 }}
-          onClick={() => window.history.back()}
-          className="flex items-center gap-2 text-gray-500 hover:text-indigo-600 mb-8 transition-colors group"
-        >
-          <ArrowLeft className="h-5 w-5 group-hover:-translate-x-1 transition-transform" />
-          <span className="font-medium">Retour</span>
-        </motion.button>
+  
 
         {/* En-tête */}
         <motion.div

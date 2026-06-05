@@ -239,8 +239,15 @@ export default function Etudiant({ userId }) {
                   </td>
                   <td className="px-8 py-6 text-right">
                     <div className="flex items-center justify-end gap-2">
-                       <a href={`mailto:${s.email}`} className="p-2.5 bg-gray-50 text-gray-400 hover:text-indigo-600 rounded-xl transition-all"><Mail className="w-5 h-5" /></a>
-                       <a href={`tel:${s.telephone}`} className="p-2.5 bg-gray-50 text-gray-400 hover:text-green-600 rounded-xl transition-all"><Phone className="w-5 h-5" /></a>
+                       <a
+                         href={`https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(s.email)}`}
+                         target="_blank"
+                         rel="noopener noreferrer"
+                         className="p-2.5 bg-gray-50 text-gray-400 hover:text-indigo-600 rounded-xl transition-all"
+                         title={`Écrire à ${s.prenom} ${s.nom} via Gmail`}
+                       >
+                         <Mail className="w-5 h-5" />
+                       </a>
                     </div>
                   </td>
                 </tr>

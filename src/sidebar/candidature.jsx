@@ -99,7 +99,6 @@ const Candidature = () => {
       case 'vue':
         return 'bg-blue-100 text-blue-800';
       case 'en attente':
-        return 'bg-yellow-100 text-yellow-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -148,6 +147,7 @@ const Candidature = () => {
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Gestion des Candidatures</h1>
         <p className="text-gray-600">Gérez les candidatures des étudiants pour vos offres de stage</p>
       </div>
+        import React, { useState, useEffect } from 'react';
 
       {/* Stats Cards Globales */}
       {analyse && (
@@ -292,7 +292,7 @@ const Candidature = () => {
                         <div className="flex items-center">
                           {candidature.photo ? (
                             <img
-                              src={`http://localhost:5000/${candidature.photo}`}
+                              src={`http://localhost:5000/${candidature.photo.startsWith('uploads/') ? '' : 'uploads/profiles/'}${candidature.photo}`}
                               alt={candidature.nom}
                               className="h-10 w-10 rounded-full object-cover mr-3"
                             />
@@ -435,12 +435,7 @@ const Candidature = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                     Dates
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Tuteur
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Évaluation
-                  </th>
+                
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
@@ -457,19 +452,7 @@ const Candidature = () => {
                       {new Date(stagiaire.dateDebut).toLocaleDateString('fr-FR')} -{' '}
                       {new Date(stagiaire.dateFin).toLocaleDateString('fr-FR')}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      <span className="px-2 py-1 bg-gray-100 rounded text-gray-600">
-                        {stagiaire.tuteur}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-1">
-                        <span className="text-yellow-400">★</span>
-                        <span className="text-sm font-medium text-gray-900">
-                          {stagiaire.evaluation.toFixed(1)}/5
-                        </span>
-                      </div>
-                    </td>
+                 
                   </tr>
                 ))}
               </tbody>
@@ -557,7 +540,7 @@ const Candidature = () => {
               <div className="flex items-center gap-4">
                 {selectedCandidature.photo ? (
                   <img
-                    src={`http://localhost:5000/${selectedCandidature.photo}`}
+                    src={`http://localhost:5000/${selectedCandidature.photo.startsWith('uploads/') ? '' : 'uploads/profiles/'}${selectedCandidature.photo}`}
                     alt={selectedCandidature.nom}
                     className="h-16 w-16 rounded-full object-cover border-2 border-indigo-200"
                   />

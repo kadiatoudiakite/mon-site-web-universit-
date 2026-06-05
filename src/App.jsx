@@ -13,30 +13,47 @@ function App() {
     const user = localStorage.getItem('user');
     const token = localStorage.getItem('token');
     if (user && token) {
-      // Vérifier si le token est valide
-      fetch('http://localhost:5000/api/universites', {
+      // Vérifier si le token est valide et récupérer le profil le plus récent
+      fetch('http://localhost:5000/api/universites/profile', {
         headers: { Authorization: `Bearer ${token}` }
       }).then(response => {
-        if (response.status === 401) {
-          // Token invalide, nettoyer
+        if (!response.ok) {
+          // Session invalide, expirée ou utilisateur inexistant (401/404)
+          console.warn('⚠️ [APP] Session invalide ou expirée, déconnexion...');
           localStorage.removeItem('user');
           localStorage.removeItem('token');
           setConnecte(false);
         } else {
+          return response.json();
+        }
+      }).then(data => {
+        if (data && data.success) {
+          const freshUser = {
+            id: data.data.id,
+            nom: data.data.nom,
+            prenom: data.data.prenom,
+            email: data.data.email,
+            role: data.data.role,
+            connecte: true
+          };
+          console.log('💾 [APP] Session vérifiée avec succès. Rôle:', freshUser.role);
+          localStorage.setItem('user', JSON.stringify(freshUser));
+          setUserEmail(freshUser.email);
+          setUserId(freshUser.id);
+          setUserData(freshUser);
+          setConnecte(true);
+        }
+      }).catch(() => {
+        // Erreur réseau, garder temporairement les données locales pour éviter les blocages hors ligne
+        try {
           const userData = JSON.parse(user);
-          console.log('💾 [APP] Utilisateur trouvé dans localStorage:', userData.nom, userData.prenom);
           setUserEmail(userData.email);
           setUserId(userData.id);
           setUserData(userData);
           setConnecte(true);
+        } catch (e) {
+          setConnecte(false);
         }
-      }).catch(() => {
-        // Erreur réseau, garder comme connecté pour éviter déconnexion accidentelle
-        const userData = JSON.parse(user);
-        setUserEmail(userData.email);
-        setUserId(userData.id);
-        setUserData(userData);
-        setConnecte(true);
       });
     }
   }, []);

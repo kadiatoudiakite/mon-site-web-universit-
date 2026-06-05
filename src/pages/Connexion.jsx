@@ -40,6 +40,7 @@ export default function Connexion({ onConnected }) {
         nom: data.user.nom,
         prenom: data.user.prenom,
         email: data.user.email,
+        role: data.user.role,
         connecte: true
       };
 

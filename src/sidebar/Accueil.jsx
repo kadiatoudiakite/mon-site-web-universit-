@@ -14,19 +14,34 @@ import { useState, useEffect } from 'react';
 
 export default function Accueil({ userId, userData, onNavigate }) {
 
+  const [analyseEtudiants, setAnalyseEtudiants] = useState(null);
+
   const [stats, setStats] = useState(null);
+  const [notifications, setNotifications] = useState([]);
   const [chargement, setChargement] = useState(true);
   const [erreur, setErreur] = useState('');
 
   const token = localStorage.getItem('token');
 
+
   useEffect(() => {
     const chargerDonnees = async () => {
       try {
-        const response = await fetch('http://localhost:5000/api/universites/analyse/globale', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        const data = await response.json();
+        const [resAnalyse, resNotif, resEtudiants] = await Promise.all([
+          fetch('http://localhost:5000/api/universites/analyse/globale', { headers: { 'Authorization': `Bearer ${token}` } }),
+          fetch('http://localhost:5000/api/universites/notifications', { headers: { 'Authorization': `Bearer ${token}` } }).catch(() => ({ ok: false })),
+          fetch('http://localhost:5000/api/universites/analyse/etudiants', { headers: { 'Authorization': `Bearer ${token}` } })
+        ]);
+
+        const data = await resAnalyse.json();
+        if (resNotif && resNotif.ok) {
+          const notifData = await resNotif.json();
+          if (notifData.success) setNotifications(notifData.data || []);
+        }
+        if (resEtudiants && resEtudiants.ok) {
+          const etuData = await resEtudiants.json();
+          if (etuData.success) setAnalyseEtudiants(etuData.data);
+        }
 
         if (data.success) {
           setStats(data.data);
@@ -56,8 +71,13 @@ export default function Accueil({ userId, userData, onNavigate }) {
     { label: 'Étudiants inscrits', value: stats?.etudiants.total || 0, icon: UserGroupIcon, color: 'text-blue-600', bg: 'bg-blue-50' },
     { label: 'Offres disponibles', value: stats?.offres.total || 0, icon: BriefcaseIcon, color: 'text-orange-600', bg: 'bg-orange-50' },
     { label: 'Placements réussis', value: stats?.etudiants.placements || 0, icon: CheckBadgeIcon, color: 'text-green-600', bg: 'bg-green-50' },
-    { label: 'Partenaires actifs', value: stats?.entreprises.total || 0, icon: Building2, color: 'text-purple-600', bg: 'bg-purple-50' },
+    { label: 'Nouvelles notifications', value: (notifications.filter(n => n.statut === 'non_lu').length) || 0, icon: Building2, color: 'text-purple-600', bg: 'bg-purple-50' },
   ];
+
+  // Préparation des données pour affichage simple
+  const filieres = analyseEtudiants?.filieres || [];
+  const domaines = analyseEtudiants?.domaines || [];
+  const totalEtudiants = stats?.etudiants?.total || 0;
 
   return (
     <div className="space-y-10 pb-20">
@@ -111,33 +131,35 @@ export default function Accueil({ userId, userData, onNavigate }) {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-        {/* Graphique Simplifié d'Evolution */}
-        <div className="lg:col-span-2 bg-white rounded-[2.5rem] p-10 shadow-xl shadow-gray-200/50 border border-gray-50">
-           <div className="flex justify-between items-center mb-10">
-              <h3 className="text-xl font-black text-gray-900 flex items-center gap-3">
-                <TrendingUp className="w-6 h-6 text-indigo-600" />
-                Activité du Système
-              </h3>
-              <span className="text-xs font-bold text-green-600 bg-green-50 px-4 py-1.5 rounded-full">+12% ce mois</span>
-           </div>
-           
-           <div className="relative h-48 w-full flex items-end justify-between px-2 gap-4">
-              {stats?.offres.evolution.map((m, i) => {
-                const max = Math.max(...stats.offres.evolution.map(x => x.total), 1);
-                const height = (m.total / max) * 100;
-                return (
-                  <div key={i} className="flex-1 flex flex-col items-center group">
-                    <div 
-                      className="w-full bg-indigo-100 rounded-t-xl group-hover:bg-indigo-600 transition-all duration-500 cursor-help"
-                      style={{ height: `${height}%` }}
-                      title={`${m.total} offres`}
-                    />
-                    <span className="text-[9px] font-bold text-gray-400 mt-3 uppercase">{m.mois}</span>
-                  </div>
-                );
-              })}
-           </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+        <div className="bg-white rounded-[2.5rem] p-10 shadow-xl shadow-gray-200/50 border border-gray-50 space-y-8">
+          <h3 className="text-xl font-black text-gray-900 flex items-center gap-3 mb-6">
+            <TrendingUp className="w-6 h-6 text-indigo-600" />
+            Analyse Étudiants (données clés)
+          </h3>
+          <div>
+            <h4 className="font-bold text-gray-700 mb-2">Nombre total d'étudiants</h4>
+            <div className="text-3xl font-black text-indigo-700 mb-4">{totalEtudiants}</div>
+          </div>
+          <div>
+            <h4 className="font-bold text-gray-700 mb-2">Répartition par filière</h4>
+            <ul className="list-disc ml-6 text-gray-800">
+              {filieres.length === 0 && <li>Aucune donnée</li>}
+              {filieres.map((f, i) => (
+                <li key={i} className="mb-1">{f.filiere} : <span className="font-bold">{f.total}</span></li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <h4 className="font-bold text-gray-700 mb-2">Répartition par domaine</h4>
+            <ul className="list-disc ml-6 text-gray-800">
+              {domaines.length === 0 && <li>Aucune donnée</li>}
+              {domaines.map((d, i) => (
+                <li key={i} className="mb-1">{d.domaine} : <span className="font-bold">{d.total}</span></li>
+              ))}
+            </ul>
+          </div>
         </div>
 
         {/* Quick Links / Alertes */}
@@ -146,29 +168,21 @@ export default function Accueil({ userId, userData, onNavigate }) {
              <ClockIcon className="w-6 h-6 text-orange-600" />
              Rappels
            </h3>
-           <div className="space-y-6">
-              <div className="flex items-start gap-4">
-                 <div className="w-2 h-2 rounded-full bg-orange-500 mt-2" />
-                 <div>
-                    <p className="text-sm font-bold text-gray-800">Candidatures en attente</p>
-                    <p className="text-xs text-gray-400 mt-0.5">15 nouveaux dossiers à valider.</p>
-                 </div>
-              </div>
-              <div className="flex items-start gap-4">
-                 <div className="w-2 h-2 rounded-full bg-blue-500 mt-2" />
-                 <div>
-                    <p className="text-sm font-bold text-gray-800">Partenariat Entreprise</p>
-                    <p className="text-xs text-gray-400 mt-0.5">Vérification du dossier "TechLabs".</p>
-                 </div>
-              </div>
-              <div className="flex items-start gap-4 opacity-50">
-                 <div className="w-2 h-2 rounded-full bg-gray-300 mt-2" />
-                 <div>
-                    <p className="text-sm font-bold text-gray-800">Mise à jour système</p>
-                    <p className="text-xs text-gray-400 mt-0.5">Planifiée pour ce soir 00:00.</p>
-                 </div>
-              </div>
-           </div>
+            <div className="space-y-4">
+              {notifications && notifications.length > 0 ? (
+               notifications.slice(0,5).map((n) => (
+                <div key={n.id} className={`flex items-start gap-4 ${n.statut === 'non_lu' ? '' : 'opacity-60'}`}>
+                  <div className={`w-2 h-2 rounded-full mt-2 ${n.statut === 'non_lu' ? 'bg-orange-500' : 'bg-gray-300'}`} />
+                  <div>
+                   <p className="text-sm font-bold text-gray-800">{n.titre || (n.message && n.message.substring(0,40))}</p>
+                   <p className="text-xs text-gray-400 mt-0.5">{n.message}</p>
+                  </div>
+                </div>
+               ))
+              ) : (
+               <div className="text-sm text-gray-500">Aucune notification récente.</div>
+              )}
+            </div>
            
            <div className="mt-10 p-6 bg-indigo-50 rounded-3xl border border-indigo-100">
               <p className="text-xs font-bold text-indigo-700 italic">
