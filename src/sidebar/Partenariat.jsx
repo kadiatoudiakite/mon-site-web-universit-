@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Handshake, CheckCircle2, XCircle, Building2, Mail, Calendar,
   Search, Filter, Loader2, Clock, RefreshCw, AlertCircle
@@ -12,6 +13,7 @@ export default function Partenariat({ onNavigate, setPrefillData }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [message, setMessage] = useState(null);
   const [actionLoading, setActionLoading] = useState(null);
+  const [demandeSelectionnee, setDemandeSelectionnee] = useState(null);
 
   useEffect(() => {
     fetchDemandes();
@@ -252,7 +254,12 @@ export default function Partenariat({ onNavigate, setPrefillData }) {
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {filteredDemandes.map((demande) => (
-            <div key={demande.id} className="bg-white rounded-3xl border shadow-sm p-6 hover:shadow-md transition">
+            <motion.div 
+              key={demande.id} 
+              onClick={() => setDemandeSelectionnee(demande)}
+              whileHover={{ y: -4 }}
+              className="cursor-pointer bg-white rounded-3xl border shadow-sm p-6 hover:shadow-md transition"
+            >
               <div className="flex justify-between items-start mb-5">
                 <div className="flex gap-3">
                   <Building2 className="text-indigo-600 mt-1" size={28} />
@@ -278,7 +285,7 @@ export default function Partenariat({ onNavigate, setPrefillData }) {
               {demande.statut === 'En attente' && (
                 <div className="flex gap-3 mt-6 pt-5 border-t">
                   <button 
-                    onClick={() => updateStatut(demande, 'Acceptée')}
+                    onClick={(e) => { e.stopPropagation(); updateStatut(demande, 'Acceptée'); }}
                     disabled={actionLoading === demande.id}
                     className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-semibold flex items-center justify-center gap-2 transition disabled:opacity-70"
                   >
@@ -291,7 +298,7 @@ export default function Partenariat({ onNavigate, setPrefillData }) {
                   </button>
 
                   <button 
-                    onClick={() => updateStatut(demande, 'Refusée')}
+                    onClick={(e) => { e.stopPropagation(); updateStatut(demande, 'Refusée'); }}
                     disabled={actionLoading === demande.id}
                     className="flex-1 py-3 border border-red-300 text-red-600 hover:bg-red-50 rounded-2xl font-semibold flex items-center justify-center gap-2 transition disabled:opacity-70"
                   >
@@ -300,10 +307,81 @@ export default function Partenariat({ onNavigate, setPrefillData }) {
                   </button>
                 </div>
               )}
-            </div>
+            </motion.div>
           ))}
         </div>
       )}
+
+      <AnimatePresence>
+        {demandeSelectionnee && (
+          <DetailsDemandeModal 
+            demande={demandeSelectionnee} 
+            onClose={() => setDemandeSelectionnee(null)} 
+          />
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+function DetailsDemandeModal({ demande, onClose }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={onClose}
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+      />
+      <motion.div 
+        initial={{ scale: 0.9, opacity: 0, y: 20 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.9, opacity: 0, y: 20 }}
+        className="relative bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden p-8"
+      >
+        <button 
+          onClick={onClose} 
+          className="absolute top-6 right-6 p-2 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
+        >
+          <XCircle size={24} className="text-gray-500" />
+        </button>
+
+        <div className="flex flex-col items-center text-center mb-8">
+           <div className="w-20 h-20 rounded-[2rem] bg-indigo-600 text-white flex items-center justify-center text-3xl font-black shadow-xl shadow-indigo-200 mb-4">
+             {demande.nom_entreprise.charAt(0).toUpperCase()}
+           </div>
+           <h3 className="text-2xl font-black text-gray-900">{demande.nom_entreprise}</h3>
+           <p className="text-xs font-black text-indigo-500 uppercase tracking-widest mt-1">{demande.domaine}</p>
+        </div>
+
+        <div className="space-y-6">
+           <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-2xl">
+              <Mail className="text-indigo-500 w-6 h-6" />
+              <div>
+                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Email Contact</p>
+                 <p className="text-sm font-bold text-gray-800">{demande.email_entreprise}</p>
+              </div>
+           </div>
+
+           <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-2xl">
+              <Calendar className="text-indigo-500 w-6 h-6" />
+              <div>
+                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Date de la demande</p>
+                 <p className="text-sm font-bold text-gray-800">{new Date(demande.date_demande).toLocaleDateString('fr-FR')}</p>
+              </div>
+           </div>
+
+           <div className="p-6 border border-gray-100 rounded-3xl bg-white shadow-sm">
+              <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                 <Handshake size={14} /> Description / Projet
+              </h4>
+              <p className="text-sm text-gray-600 leading-relaxed italic">
+                 "{demande.description}"
+              </p>
+           </div>
+        </div>
+      </motion.div>
     </div>
   );
 }

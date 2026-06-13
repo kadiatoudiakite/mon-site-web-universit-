@@ -14,7 +14,8 @@ import {
   XMarkIcon,
   CalendarIcon,
   UserIcon,
-  ChevronRightIcon
+  ChevronRightIcon,
+  TrashIcon
 } from '@heroicons/react/24/outline';
 import FormulaireEntreprise from '../pages/Form_creaction_entreprise';
 import { toast, Toaster } from 'react-hot-toast';
@@ -66,6 +67,25 @@ export default function Entreprise({ prefillData, setPrefillData }) {
     (e.nom || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
     (e.domaine_nom || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const handleDeleteEntreprise = async (id, e) => {
+    e.stopPropagation();
+    if (!window.confirm('Voulez-vous vraiment supprimer cette entreprise de la plateforme ? Cette action est irréversible.')) return;
+    try {
+      const res = await fetch(`http://localhost:5000/api/entreprises/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        toast.success('Entreprise supprimée');
+        fetchData();
+      } else {
+        toast.error('Erreur lors de la suppression');
+      }
+    } catch (err) {
+      toast.error('Erreur réseau');
+    }
+  };
 
   if (chargement) {
     return (
@@ -140,10 +160,11 @@ export default function Entreprise({ prefillData, setPrefillData }) {
         {filteredEntreprises.map((entreprise) => (
           <motion.div
             key={entreprise.id}
+            onClick={() => setEntrepriseSelectionnee(entreprise)}
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             whileHover={{ y: -4 }}
-            className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col group relative overflow-hidden"
+            className="cursor-pointer bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col group relative overflow-hidden"
           >
             {/* Badge Publication */}
             <div className="absolute top-4 right-4 px-2.5 py-1 bg-indigo-600 text-white rounded-lg text-[10px] font-black flex items-center gap-1.5 shadow-lg shadow-indigo-100">
@@ -153,11 +174,17 @@ export default function Entreprise({ prefillData, setPrefillData }) {
 
             <div className="p-6">
               <div className="flex items-center gap-4 mb-5">
-                <div className="w-12 h-12 rounded-xl bg-gray-50 flex items-center justify-center text-indigo-600 font-black text-lg group-hover:bg-indigo-600 group-hover:text-white transition-all duration-300">
-                  {entreprise.nom.charAt(0).toUpperCase()}
-                </div>
+                {entreprise.logo ? (
+                  <img src={entreprise.logo} alt={entreprise.nom} className="w-12 h-12 rounded-xl object-cover shadow-sm border border-gray-100" />
+                ) : (
+                  <div className="w-12 h-12 rounded-xl bg-gray-50 flex items-center justify-center text-indigo-600 font-black text-lg group-hover:bg-indigo-600 group-hover:text-white transition-all duration-300">
+                    {entreprise.nom.charAt(0).toUpperCase()}
+                  </div>
+                )}
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-sm font-black text-gray-900 truncate group-hover:text-indigo-600 transition-colors">{entreprise.nom}</h3>
+                  <h3 className="text-sm font-black text-gray-900 truncate group-hover:text-indigo-600 transition-colors">
+                    {entreprise.nom} {entreprise.sigle && <span className="text-gray-400">({entreprise.sigle})</span>}
+                  </h3>
                   <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest truncate">{entreprise.domaine_nom || 'Secteur indéfini'}</p>
                 </div>
               </div>
@@ -175,13 +202,17 @@ export default function Entreprise({ prefillData, setPrefillData }) {
 
               <div className="flex gap-2">
                  <button 
-                  onClick={() => setEntrepriseSelectionnee(entreprise)}
+                  onClick={(e) => { e.stopPropagation(); setEntrepriseSelectionnee(entreprise); }}
                   className="flex-1 py-2.5 bg-gray-50 text-indigo-600 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-indigo-600 hover:text-white transition-all"
                  >
                    Voir les détails
                  </button>
-                 <button className="px-3 py-2.5 bg-gray-50 text-gray-400 rounded-xl hover:bg-gray-100 transition-all">
-                    <ChartBarIcon className="w-4 h-4" />
+                 <button 
+                   onClick={(e) => handleDeleteEntreprise(entreprise.id, e)}
+                   className="px-3 py-2.5 bg-gray-50 text-red-400 rounded-xl hover:bg-red-50 hover:text-red-600 transition-all"
+                   title="Supprimer l'entreprise"
+                 >
+                    <TrashIcon className="w-4 h-4" />
                  </button>
               </div>
             </div>
@@ -267,17 +298,31 @@ function DetailsModal({ entreprise, onClose }) {
            </div>
 
            <div className="flex flex-col items-center text-center mb-8">
-              <div className="w-20 h-20 rounded-[2rem] bg-indigo-600 text-white flex items-center justify-center text-3xl font-black shadow-xl shadow-indigo-200 mb-4">
-                {entreprise.nom.charAt(0).toUpperCase()}
-              </div>
-              <h3 className="text-xl font-black text-gray-900">{entreprise.nom}</h3>
+              {entreprise.logo ? (
+                <img 
+                  src={entreprise.logo} 
+                  alt={entreprise.nom} 
+                  className="w-20 h-20 rounded-[2rem] object-cover shadow-xl shadow-indigo-200 mb-4 border-2 border-white"
+                />
+              ) : (
+                <div className="w-20 h-20 rounded-[2rem] bg-indigo-600 text-white flex items-center justify-center text-3xl font-black shadow-xl shadow-indigo-200 mb-4">
+                  {entreprise.nom.charAt(0).toUpperCase()}
+                </div>
+              )}
+              <h3 className="text-xl font-black text-gray-900">
+                {entreprise.nom}
+                {entreprise.sigle && <span className="text-gray-400 text-sm ml-2 font-bold">({entreprise.sigle})</span>}
+              </h3>
               <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mt-1">{entreprise.domaine_nom}</p>
+              {entreprise.created_at && (
+                <p className="text-[10px] font-bold text-gray-400 mt-2">Partenaire depuis : {new Date(entreprise.created_at).toLocaleDateString('fr-FR')}</p>
+              )}
            </div>
 
            <div className="space-y-6">
               <InfoBlock icon={EnvelopeIcon} label="Email Professionnel" value={entreprise.email} />
               <InfoBlock icon={PhoneIcon} label="Téléphone" value={entreprise.telephone || 'Non renseigné'} />
-              <InfoBlock icon={MapPinIcon} label="Localisation" value={`${entreprise.commune}, ${entreprise.quartier}`} />
+              <InfoBlock icon={MapPinIcon} label="Localisation" value={[entreprise.commune, entreprise.quartier].filter(Boolean).join(', ') || 'Non renseignée'} />
               <div className="pt-4 border-t border-gray-200">
                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Description</p>
                  <p className="text-xs text-gray-600 leading-relaxed italic">

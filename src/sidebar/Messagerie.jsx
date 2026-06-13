@@ -22,7 +22,7 @@ export default function Messagerie({ userId, userEmail, userData }) {
   const [sending, setSending] = useState(false);
   const [activeTab, setActiveTab] = useState('chats'); // 'chats' or 'contacts'
 
-  const messagesEndRef = useRef(null);
+  const messagesContainerRef = useRef(null);
   const fileInputRef = useRef(null);
   const imageInputRef = useRef(null);
 
@@ -78,9 +78,35 @@ export default function Messagerie({ userId, userEmail, userData }) {
     }
   }, [selectedConv]);
 
+  const scrollToBottom = (smooth = true) => {
+    if (messagesContainerRef.current) {
+      const scrollHeight = messagesContainerRef.current.scrollHeight;
+      const height = messagesContainerRef.current.clientHeight;
+      const maxScrollTop = scrollHeight - height;
+      messagesContainerRef.current.scrollTo({
+        top: maxScrollTop > 0 ? maxScrollTop : 0,
+        behavior: smooth ? 'smooth' : 'auto'
+      });
+    }
+  };
+
+  // Scroll automatique intelligent
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (messagesContainerRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
+      const isNearBottom = scrollHeight - scrollTop - clientHeight < 150;
+      if (isNearBottom) {
+        scrollToBottom(true);
+      }
+    }
   }, [messages]);
+
+  // Scroll immédiat lors du changement de conversation
+  useEffect(() => {
+    if (selectedConv) {
+      setTimeout(() => scrollToBottom(false), 50);
+    }
+  }, [selectedConv]);
 
   const markMessagesAsRead = async (conversation_id) => {
     try {
@@ -330,7 +356,7 @@ export default function Messagerie({ userId, userEmail, userData }) {
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-6 bg-gray-50/20 space-y-4">
+              <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-6 bg-gray-50/20 space-y-4">
                 {messages.map((msg) => {
                   const isMe = msg.expediteur_type === 'UNIVERSITE';
                   return (
@@ -357,7 +383,7 @@ export default function Messagerie({ userId, userEmail, userData }) {
                     </div>
                   );
                 })}
-                <div ref={messagesEndRef} />
+                {/* messagesEndRef is no longer needed since we use scrollTo on the container */}
               </div>
 
               <div className="p-4 border-t border-gray-50">

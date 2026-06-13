@@ -22,6 +22,16 @@ export default function Etudiant({ userId }) {
   const [searchTerm, setSearchTerm] = useState('');
 
   const token = localStorage.getItem('token');
+  const API_BASE_URL = 'http://localhost:5000';
+
+  // Fonction utilitaire pour obtenir l'URL complète de la photo
+  const getPhotoUrl = (photoPath) => {
+    if (!photoPath) return null;
+    // Si le chemin commence déjà par http, on le retourne tel quel
+    if (photoPath.startsWith('http')) return photoPath;
+    // Sinon, on construit l'URL complète
+    return `${API_BASE_URL}${photoPath}`;
+  };
 
   useEffect(() => {
     if (userId) {
@@ -32,10 +42,10 @@ export default function Etudiant({ userId }) {
   const fetchData = async () => {
     try {
       const [statsRes, listRes] = await Promise.all([
-        fetch('http://localhost:5000/api/universites/etudiants/analyse/statistiques', {
+        fetch(`${API_BASE_URL}/api/universites/etudiants/analyse/statistiques`, {
           headers: { 'Authorization': `Bearer ${token}` }
         }),
-        fetch('http://localhost:5000/api/universites/etudiants/analyse/liste-complete', {
+        fetch(`${API_BASE_URL}/api/universites/etudiants/analyse/liste-complete`, {
           headers: { 'Authorization': `Bearer ${token}` }
         })
       ]);
@@ -202,61 +212,81 @@ export default function Etudiant({ userId }) {
                 <th className="px-8 py-5 text-xs font-black text-gray-400 uppercase tracking-widest">Parcours</th>
                 <th className="px-8 py-5 text-xs font-black text-gray-400 uppercase tracking-widest">Activité</th>
                 <th className="px-8 py-5 text-xs font-black text-gray-400 uppercase tracking-widest text-right">Actions</th>
-              </tr>
+               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {filteredStudents.map((s) => (
-                <tr key={s.id} className="hover:bg-gray-50/50 transition-colors group">
-                  <td className="px-8 py-6">
-                    <div className="flex items-center gap-4">
-                       <div className="w-12 h-12 rounded-2xl bg-indigo-100 flex items-center justify-center text-indigo-600 font-black text-lg">
-                          {s.nom.charAt(0)}
-                       </div>
-                       <div>
+              {filteredStudents.map((s) => {
+                const photoUrl = getPhotoUrl(s.photo);
+                return (
+                  <tr key={s.id} className="hover:bg-gray-50/50 transition-colors group">
+                    <td className="px-8 py-6">
+                      <div className="flex items-center gap-4">
+                        {photoUrl ? (
+                          <img 
+                            src={photoUrl} 
+                            alt={`${s.prenom} ${s.nom}`} 
+                            className="w-12 h-12 rounded-2xl object-cover shadow-sm border border-gray-100"
+                            onError={(e) => {
+                              e.target.onerror = null;
+                              e.target.style.display = 'none';
+                              e.target.parentElement.innerHTML = `
+                                <div class="w-12 h-12 rounded-2xl bg-indigo-100 flex items-center justify-center text-indigo-600 font-black text-lg shadow-sm">
+                                  ${s.nom ? s.nom.charAt(0).toUpperCase() : '?'}
+                                </div>
+                              `;
+                            }}
+                          />
+                        ) : (
+                          <div className="w-12 h-12 rounded-2xl bg-indigo-100 flex items-center justify-center text-indigo-600 font-black text-lg shadow-sm">
+                            {s.nom ? s.nom.charAt(0).toUpperCase() : '?'}
+                          </div>
+                        )}
+                        <div>
                           <p className="font-bold text-gray-900">{s.prenom} {s.nom}</p>
                           <div className="flex items-center gap-3 text-xs text-gray-400 mt-1">
-                             <Mail className="w-3 h-3" /> {s.email}
+                            <Mail className="w-3 h-3" /> {s.email}
                           </div>
-                       </div>
-                    </div>
-                  </td>
-                  <td className="px-8 py-6">
-                    <p className="text-sm font-bold text-gray-700">{s.filiere || 'N/A'}</p>
-                    <p className="text-[10px] font-black text-indigo-400 uppercase mt-1 tracking-widest">{s.niveau}</p>
-                  </td>
-                  <td className="px-8 py-6">
-                    <div className="flex items-center gap-4">
-                       <div className="text-center">
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-8 py-6">
+                      <p className="text-sm font-bold text-gray-700">{s.filiere || 'N/A'}</p>
+                      <p className="text-[10px] font-black text-indigo-400 uppercase mt-1 tracking-widest">{s.niveau}</p>
+                    </td>
+                    <td className="px-8 py-6">
+                      <div className="flex items-center gap-4">
+                        <div className="text-center">
                           <p className="text-sm font-black text-gray-900">{s.nb_candidatures}</p>
                           <p className="text-[9px] font-bold text-gray-400 uppercase">Candidatures</p>
-                       </div>
-                       <div className="w-px h-8 bg-gray-100" />
-                       <div className="text-center">
+                        </div>
+                        <div className="w-px h-8 bg-gray-100" />
+                        <div className="text-center">
                           <p className={`text-sm font-black ${s.nb_stages > 0 ? 'text-green-600' : 'text-gray-400'}`}>{s.nb_stages}</p>
                           <p className="text-[9px] font-bold text-gray-400 uppercase">Stage trouvé</p>
-                       </div>
-                    </div>
-                  </td>
-                  <td className="px-8 py-6 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                       <a
-                         href={`https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(s.email)}`}
-                         target="_blank"
-                         rel="noopener noreferrer"
-                         className="p-2.5 bg-gray-50 text-gray-400 hover:text-indigo-600 rounded-xl transition-all"
-                         title={`Écrire à ${s.prenom} ${s.nom} via Gmail`}
-                       >
-                         <Mail className="w-5 h-5" />
-                       </a>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-8 py-6 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <a
+                          href={`https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(s.email)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-2.5 bg-gray-50 text-gray-400 hover:text-indigo-600 rounded-xl transition-all"
+                          title={`Écrire à ${s.prenom} ${s.nom} via Gmail`}
+                        >
+                          <Mail className="w-5 h-5" />
+                        </a>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
           {filteredStudents.length === 0 && (
             <div className="py-20 text-center">
-               <p className="text-gray-400 font-medium italic">Aucun étudiant trouvé correspondant à votre recherche.</p>
+              <p className="text-gray-400 font-medium italic">Aucun étudiant trouvé correspondant à votre recherche.</p>
             </div>
           )}
         </div>
